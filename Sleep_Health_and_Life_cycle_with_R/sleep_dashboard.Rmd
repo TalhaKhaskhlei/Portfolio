@@ -1,0 +1,86 @@
+
+---
+title: "Sleep Health Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+# Load necessary libraries
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(corrplot)
+
+# Load dataset
+sleep_data <- read.csv("Sleep_health_and_lifestyle_dataset.csv", stringsAsFactors = FALSE)
+
+# Clean column names
+colnames(sleep_data) <- make.names(colnames(sleep_data))
+
+# Convert appropriate columns to factors
+sleep_data$Gender <- as.factor(sleep_data$Gender)
+sleep_data$Occupation <- as.factor(sleep_data$Occupation)
+sleep_data$BMI.Category <- as.factor(sleep_data$BMI.Category)
+sleep_data$Sleep.Disorder <- as.factor(sleep_data$Sleep.Disorder)
+```
+
+### Key Metrics
+```{r}
+summary_data <- sleep_data %>%
+  summarise(
+    Avg_Sleep = round(mean(Sleep.Duration, na.rm = TRUE), 1),
+    Avg_Stress = round(mean(Stress.Level, na.rm = TRUE), 1),
+    Avg_HeartRate = round(mean(Heart.Rate, na.rm = TRUE), 1),
+    Avg_Steps = round(mean(Daily.Steps, na.rm = TRUE), 0)
+  )
+
+summary_data %>% 
+  pivot_longer(cols = everything(), names_to = "Metric", values_to = "Value") %>%
+  ggplot(aes(x = Metric, y = Value, fill = Metric)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Key Averages", x = NULL, y = NULL) +
+  theme(legend.position = "none")
+```
+
+### Sleep by Age and Gender
+```{r}
+plot_ly(sleep_data, 
+        x = ~Age, y = ~Sleep.Duration, color = ~Gender, 
+        type = 'scatter', mode = 'markers',
+        marker = list(size = 8, opacity = 0.6)) %>%
+  layout(title = "Sleep Duration by Age and Gender",
+         xaxis = list(title = "Age"),
+         yaxis = list(title = "Sleep Duration (hrs)"))
+```
+
+### Activity vs Sleep (by Sleep Disorder)
+```{r}
+plot_ly(sleep_data, 
+        x = ~Physical.Activity.Level, y = ~Sleep.Duration, 
+        color = ~Sleep.Disorder,
+        type = "scatter", mode = "markers",
+        marker = list(opacity = 0.7)) %>%
+  layout(title = "Physical Activity vs Sleep Duration by Sleep Disorder",
+         xaxis = list(title = "Physical Activity Level"),
+         yaxis = list(title = "Sleep Duration (hrs)"))
+```
+
+### Correlation Heatmap
+```{r}
+numeric_cols <- sleep_data %>% select_if(is.numeric)
+numeric_data <- na.omit(numeric_cols)
+cor_matrix <- cor(numeric_data)
+
+corrplot(cor_matrix, method = "color", type = "lower", tl.cex = 0.8)
+```
+
+### Interactive Data Table
+```{r}
+datatable(sleep_data, options = list(pageLength = 10, scrollX = TRUE))
+```

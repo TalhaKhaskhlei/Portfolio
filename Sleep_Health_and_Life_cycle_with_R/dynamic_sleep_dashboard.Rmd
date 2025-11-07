@@ -1,0 +1,59 @@
+
+---
+title: "Dynamic Sleep Chart Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: flatly
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(plotly)
+
+# Load data
+sleep_data <- read.csv("Sleep_health_and_lifestyle_dataset.csv", stringsAsFactors = FALSE)
+colnames(sleep_data) <- make.names(colnames(sleep_data))
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+### Select Columns to Visualize
+
+```{r}
+selectInput("xcol", "X-axis variable", choices = names(sleep_data), selected = "Age")
+selectInput("ycol", "Y-axis variable", choices = names(sleep_data), selected = "Sleep.Duration")
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Dynamic Chart
+
+```{r}
+renderPlotly({
+  xvar <- input$xcol
+  yvar <- input$ycol
+
+  req(xvar, yvar)
+
+  plot_ly(
+    data = sleep_data,
+    x = ~get(xvar),
+    y = ~get(yvar),
+    type = "scatter",
+    mode = "markers",
+    marker = list(opacity = 0.6)
+  ) %>%
+    layout(
+      title = paste("Chart of", yvar, "vs", xvar),
+      xaxis = list(title = xvar),
+      yaxis = list(title = yvar)
+    )
+})
+```
